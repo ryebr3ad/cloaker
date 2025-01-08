@@ -6,37 +6,68 @@
   window.hasRun = true;
   window.isCloaked = false;
 
+  function idAllElements(ids, func) {
+    console.log("idAllElements called");
+    genIdAndTraverse(document.documentElement, ids, func);
+  }
+
+  async function genIdAndTraverse(elem, ids, func) {
+    if (isContainerElement(elem) && elem.id === "") {
+      let genId = await generateIdHash(elem);
+      elem.setAttribute("id", genId);
+      if (ids.filter((id) => id === genId).length) {
+        func(elem);
+      }
+    }
+    if (elem.children.length > 0) {
+      for (let child of elem.children) {
+        genIdAndTraverse(child, ids, func);
+      }
+    }
+  }
+
   function getContainerElement(elem) {
-    //bubble up to the closest div element
-    while (
-      elem.localName.toUpperCase() !== "DIV" &&
-      elem.localName.toUpperCase() !== "ASIDE"
-    ) {
+    //bubble up to the closest container element
+    while (!isContainerElement(elem)) {
       elem = elem.parentElement;
     }
     return elem;
   }
 
-  async function digestClick(e) {
-    let elem = getContainerElement(e.target);
+  function isContainerElement(elem) {
+    return (
+      elem.tagName.toUpperCase() === "DIV" ||
+      elem.tagName.toUpperCase() === "ASIDE"
+    );
+  }
+
+  async function generateIdHash(elem) {
     const clone = elem.cloneNode(true);
     clone.innerHTML = "";
-    const textAsBuffer = new TextEncoder().encode(clone.outerHTML);
+    let stringToHash = clone.outerHTML + getElemPositionFromParent(elem);
+    const textAsBuffer = new TextEncoder().encode(stringToHash);
     const hashBuffer = await window.crypto.subtle.digest(
       "SHA-256",
       textAsBuffer
     );
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hash = hashArray
-      .map((item) => item.toString(16).padStart(2, "0"))
-      .join("");
-    if (elem.id === "") {
-      elem.id = hash;
+    return hashArray.map((item) => item.toString(16).padStart(2, "0")).join("");
+  }
+
+  function getElemPositionFromParent(elem) {
+    const children = elem.parentElement.children;
+    let i = 0;
+    for (i; i < children.length; i++) {
+      if (children[i] === elem) return i;
     }
+    return -1;
+  }
+
+  async function digestClick(e) {
+    let elem = getContainerElement(e.target);
     elem.style["visibility"] = "hidden";
     let storage = await browser.storage.local.get();
-    storage[window.location.hostname].push(hash);
-    console.log(storage);
+    storage[window.location.hostname].push(elem.id);
     browser.storage.local.set(storage);
   }
 
@@ -74,7 +105,15 @@
         storage[window.location.hostname] = [];
         browser.storage.local.set(storage);
       }
+      cloakKnownElements(storage);
     }
+  }
+
+  async function cloakKnownElements(storage) {
+    let ids = storage[window.location.hostname];
+    idAllElements(ids, (elem) => {
+      elem.style["visibility"] = "hidden";
+    });
   }
 
   browser.runtime.onMessage.addListener(digestMessage);
