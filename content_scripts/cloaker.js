@@ -109,6 +109,17 @@
     }
   }
 
+  async function implementInitialLoad() {
+    window.console.log("executing 'load'");
+    let storage = await browser.storage.local.get();
+    if (!storage || !storage[window.location.hostname]) {
+      let storage = {};
+      storage[window.location.hostname] = [];
+      browser.storage.local.set(storage);
+    }
+    cloakKnownElements(storage);
+  }
+
   async function cloakKnownElements(storage) {
     let ids = storage[window.location.hostname];
     idAllElements(ids, (elem) => {
@@ -117,4 +128,6 @@
   }
 
   browser.runtime.onMessage.addListener(digestMessage);
+
+  setInterval(implementInitialLoad, 1000);
 })();
