@@ -4,10 +4,13 @@
   }
 
   window.hasRun = true;
-  window.isCloaked = false;
+
+  const cloakerOverlay = `
+  <div id="cloaker-overlay"> 
+  </div>
+  `;
 
   function idAllElements(ids, func) {
-    console.log("idAllElements called");
     genIdAndTraverse(document.documentElement, ids, func);
   }
 
@@ -86,45 +89,53 @@
 
   async function digestMessage(message) {
     if (message.command === "cloak") {
-      if (!window.isCloaked) {
-        window.isCloaked = true;
-        document.addEventListener("click", digestClick);
-        document.addEventListener("mouseover", highlightElement);
-        document.addEventListener("mouseout", leaveElement);
-      } else {
-        window.isCloaked = false;
-        document.removeEventListener("click", digestClick);
-        document.removeEventListener("mouseover", highlightElement);
-        document.removeEventListener("mouseout", leaveElement);
-      }
-    } else if (message.command === "load") {
-      window.console.log("executing 'load'");
+      let cloak = document.createElement("div");
+      cloak.setAttribute("id", "cloaker-overlay");
+      document.body.append(cloak);
+      document.addEventListener("click", digestClick);
+      document.addEventListener("mouseover", highlightElement);
+      document.addEventListener("mouseout", leaveElement);
+    } else if (message.command === "uncloak") {
+      document.getElementById("cloaker-overlay").remove();
+      document.removeEventListener("click", digestClick);
+      document.removeEventListener("mouseover", highlightElement);
+      document.removeEventListener("mouseout", leaveElement);
+    } else if (message.command === "load" || message.command === "clear") {
       let storage = await browser.storage.local.get();
       if (!storage || !storage[window.location.hostname]) {
         let storage = {};
         storage[window.location.hostname] = [];
         browser.storage.local.set(storage);
       }
-      cloakKnownElements(storage);
+      modifyKnownElements(storage, message.command);
+      if (message.command === "clear") {
+        let storage = {};
+        storage[window.location.hostname] = [];
+        browser.storage.local.set(storage);
+      }
     }
   }
 
   async function implementInitialLoad() {
-    window.console.log("executing 'load'");
     let storage = await browser.storage.local.get();
     if (!storage || !storage[window.location.hostname]) {
       let storage = {};
       storage[window.location.hostname] = [];
       browser.storage.local.set(storage);
     }
-    cloakKnownElements(storage);
+    modifyKnownElements(storage);
   }
 
-  async function cloakKnownElements(storage) {
+  async function modifyKnownElements(storage, command = "cloak") {
     let ids = storage[window.location.hostname];
-    idAllElements(ids, (elem) => {
-      elem.style["visibility"] = "hidden";
-    });
+    if (ids) {
+      idAllElements(ids, (elem) => {
+        if (command === "clear") {
+          console.log("clearing");
+        }
+        elem.style["visibility"] = command === "cloak" ? "hidden" : "visible";
+      });
+    }
   }
 
   browser.runtime.onMessage.addListener(digestMessage);
