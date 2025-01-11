@@ -41,8 +41,9 @@
 
   function isContainerElement(elem) {
     return (
-      elem.tagName.toUpperCase() === "DIV" ||
-      elem.tagName.toUpperCase() === "ASIDE"
+      elem &&
+      (elem.tagName.toUpperCase() === "DIV" ||
+        elem.tagName.toUpperCase() === "ASIDE")
     );
   }
 
@@ -70,11 +71,11 @@
 
   async function digestClick(e) {
     let elem = currEl;
-    elem.style["visibility"] = "hidden";
     let storage = await browser.storage.local.get();
     storage[window.location.hostname].push(elem.id);
     browser.storage.local.set(storage);
-    currEl = null;
+
+    elem.classList.add("cloaker-cloak");
   }
 
   function leaveCloak(e) {
@@ -130,7 +131,7 @@
       document.getElementById("cloaker-overlay").remove();
       document.removeEventListener("click", digestClick);
       document.removeEventListener("mousemove", applyHover);
-    } else if (message.command === "load" || message.command === "clear") {
+    } else if (message.command === "load") {
       let storage = await browser.storage.local.get();
       if (!storage || !storage[window.location.hostname]) {
         let storage = {};
@@ -143,6 +144,13 @@
         storage[window.location.hostname] = [];
         browser.storage.local.set(storage);
       }
+    } else if (message.command === "clear") {
+      let storage = {};
+      storage[window.location.hostname] = [];
+      browser.storage.local.set(storage);
+      document.querySelectorAll(".cloaker-cloak").forEach((elem) => {
+        elem.classList.remove("cloaker-cloak");
+      });
     }
   }
 

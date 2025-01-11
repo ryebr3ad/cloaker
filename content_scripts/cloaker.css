@@ -2,6 +2,10 @@
   background-color: #205081;
 }
 
+.cloaker-cloak {
+  visibility: hidden !important;
+}
+
 #cloaker-overlay {
   top: 0px;
   opacity: 0.5;
