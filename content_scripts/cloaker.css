@@ -1,4 +1,4 @@
-.show-hover:hover {
+.show-hover {
   background-color: #205081;
 }
 
@@ -9,7 +9,6 @@
   position: fixed;
   height: 100%;
   width: 100%;
-  pointer-events: none;
   display: block;
   z-index: 1001;
 }

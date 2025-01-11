@@ -10,6 +10,8 @@
   </div>
   `;
 
+  let currEl = null;
+
   function idAllElements(ids, func) {
     genIdAndTraverse(document.documentElement, ids, func);
   }
@@ -67,39 +69,67 @@
   }
 
   async function digestClick(e) {
-    let elem = getContainerElement(e.target);
+    let elem = currEl;
     elem.style["visibility"] = "hidden";
     let storage = await browser.storage.local.get();
     storage[window.location.hostname].push(elem.id);
     browser.storage.local.set(storage);
+    currEl = null;
   }
 
-  function highlightElement(e) {
-    e.target.classList.add("show-hover");
-    let parEl = e.target.parentElement;
-    while (parEl !== null) {
-      parEl.classList.remove("show-hover");
-      parEl = parEl.parentElement;
+  function leaveCloak(e) {
+    currEl = null;
+    document.querySelectorAll(".show-hover").forEach((e) => {
+      e.classList.remove("show-hover");
+    });
+  }
+
+  function applyHover(e) {
+    document.querySelectorAll(".show-hover").forEach((e) => {
+      if (e !== currEl) {
+        e.classList.remove("show-hover");
+      }
+    });
+    let elem = getElemAtPos(document.body, e.pageX, e.pageY);
+    elem = getContainerElement(elem);
+    elem.classList.add("show-hover");
+    currEl = elem;
+  }
+
+  function getElemAtPos(elem, x, y) {
+    //Check to see if the function exists, meaning that it even has a client rectangle to observe
+    let candidateElem = elem;
+    if (elem.children.length > 0) {
+      for (let pos in elem.children) {
+        let child = elem.children[pos];
+        if (child.id !== "cloaker-overlay" && child.getBoundingClientRect) {
+          let rect = child.getBoundingClientRect();
+          if (
+            rect.top < y &&
+            rect.bottom > y &&
+            rect.right > x &&
+            rect.left < x
+          ) {
+            candidateElem = getElemAtPos(child, x, y);
+          }
+        }
+      }
     }
-  }
-
-  function leaveElement(e) {
-    e.target.classList.remove("show-hover");
+    return candidateElem;
   }
 
   async function digestMessage(message) {
     if (message.command === "cloak") {
       let cloak = document.createElement("div");
       cloak.setAttribute("id", "cloaker-overlay");
+      cloak.addEventListener("mouseout", leaveCloak);
       document.body.append(cloak);
       document.addEventListener("click", digestClick);
-      document.addEventListener("mouseover", highlightElement);
-      document.addEventListener("mouseout", leaveElement);
+      document.addEventListener("mousemove", applyHover);
     } else if (message.command === "uncloak") {
       document.getElementById("cloaker-overlay").remove();
       document.removeEventListener("click", digestClick);
-      document.removeEventListener("mouseover", highlightElement);
-      document.removeEventListener("mouseout", leaveElement);
+      document.removeEventListener("mousemove", applyHover);
     } else if (message.command === "load" || message.command === "clear") {
       let storage = await browser.storage.local.get();
       if (!storage || !storage[window.location.hostname]) {
@@ -130,9 +160,6 @@
     let ids = storage[window.location.hostname];
     if (ids) {
       idAllElements(ids, (elem) => {
-        if (command === "clear") {
-          console.log("clearing");
-        }
         elem.style["visibility"] = command === "cloak" ? "hidden" : "visible";
       });
     }
