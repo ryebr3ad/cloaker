@@ -16,8 +16,3 @@
   display: block;
   z-index: 1001;
 }
-
-.button-container {
-  display: flex;
-  flex-direction: column;
-}

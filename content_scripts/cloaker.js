@@ -1,4 +1,6 @@
 (() => {
+  setInterval(implementInitialLoad, 1000);
+
   if (window.hasRun) {
     return;
   }
@@ -174,6 +176,4 @@
   }
 
   browser.runtime.onMessage.addListener(digestMessage);
-
-  setInterval(implementInitialLoad, 1000);
 })();
