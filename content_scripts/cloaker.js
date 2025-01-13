@@ -19,10 +19,13 @@
   }
 
   async function genIdAndTraverse(elem, ids, func) {
-    if (isContainerElement(elem) && elem.id === "") {
-      let genId = await generateIdHash(elem);
-      elem.setAttribute("id", genId);
-      if (ids.filter((id) => id === genId).length) {
+    if (isContainerElement(elem)) {
+      let elemId = elem.id;
+      if (elem.id === "") {
+        elemId = await generateIdHash(elem);
+        elem.setAttribute("id", elemId);
+      }
+      if (ids.filter((id) => id === elemId).length) {
         func(elem);
       }
     }
@@ -35,7 +38,7 @@
 
   function getContainerElement(elem) {
     //bubble up to the closest container element
-    while (!isContainerElement(elem)) {
+    while (elem && !isContainerElement(elem)) {
       elem = elem.parentElement;
     }
     return elem;
@@ -72,12 +75,14 @@
   }
 
   async function digestClick(e) {
-    let elem = currEl;
-    let storage = await browser.storage.local.get();
-    storage[window.location.hostname].push(elem.id);
-    browser.storage.local.set(storage);
+    if (currEl) {
+      let elem = currEl;
+      let storage = await browser.storage.local.get();
+      storage[window.location.hostname].push(elem.id);
+      browser.storage.local.set(storage);
 
-    elem.classList.add("cloaker-cloak");
+      elem.classList.add("cloaker-cloak");
+    }
   }
 
   function leaveCloak(e) {
@@ -93,25 +98,32 @@
         e.classList.remove("show-hover");
       }
     });
-    let elem = getElemAtPos(document.body, e.pageX, e.pageY);
+    let elem = getElemAtPos(document.body, e.clientX, e.clientY);
     elem = getContainerElement(elem);
-    elem.classList.add("show-hover");
-    currEl = elem;
+    if (elem) {
+      elem.classList.add("show-hover");
+      currEl = elem;
+    }
   }
 
   function getElemAtPos(elem, x, y) {
     //Check to see if the function exists, meaning that it even has a client rectangle to observe
     let candidateElem = elem;
+    let scrollX = x - window.scrollX;
+    let scrollY = y - window.scrollY;
     if (elem.children.length > 0) {
       for (let pos in elem.children) {
         let child = elem.children[pos];
         if (child.id !== "cloaker-overlay" && child.getBoundingClientRect) {
           let rect = child.getBoundingClientRect();
+          if (child.id === "react-root") {
+            console.log(child, rect, scrollX, scrollY);
+          }
           if (
-            rect.top < y &&
-            rect.bottom > y &&
-            rect.right > x &&
-            rect.left < x
+            rect.top < scrollY &&
+            rect.bottom > scrollY &&
+            rect.right > scrollX &&
+            rect.left < scrollX
           ) {
             candidateElem = getElemAtPos(child, x, y);
           }
@@ -141,11 +153,6 @@
         browser.storage.local.set(storage);
       }
       modifyKnownElements(storage, message.command);
-      if (message.command === "clear") {
-        let storage = {};
-        storage[window.location.hostname] = [];
-        browser.storage.local.set(storage);
-      }
     } else if (message.command === "clear") {
       let storage = {};
       storage[window.location.hostname] = [];
