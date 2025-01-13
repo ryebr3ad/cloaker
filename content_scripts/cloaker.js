@@ -119,18 +119,23 @@
           if (child.id === "react-root") {
             console.log(child, rect, scrollX, scrollY);
           }
-          if (
-            rect.top < scrollY &&
-            rect.bottom > scrollY &&
-            rect.right > scrollX &&
-            rect.left < scrollX
-          ) {
+          if (isBounded(rect, x, y)) {
             candidateElem = getElemAtPos(child, x, y);
+          }
+          //If an element wasn't found at the real x and y postion, check the scroll adjusted position
+          if (candidateElem === elem) {
+            if (isBounded(rect, scrollX, scrollY)) {
+              candidateElem = getElemAtPos(child, x, y);
+            }
           }
         }
       }
     }
     return candidateElem;
+  }
+
+  function isBounded(rect, x, y) {
+    return rect.top < y && rect.bottom > y && rect.right > x && rect.left < x;
   }
 
   async function digestMessage(message) {
