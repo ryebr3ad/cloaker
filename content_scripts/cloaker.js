@@ -7,12 +7,12 @@
 
   window.hasRun = true;
 
-  const cloakerOverlay = `
-  <div id="cloaker-overlay"> 
-  </div>
-  `;
+  const CLOAK_CLASS = "cloaker-cloak";
+  const HOVER_CLASS = "show-hover";
+  const OVELRAY_ID = "cloaker-overlay";
 
   let currEl = null;
+  let cloakerActive = false;
 
   function idAllElements(ids, func) {
     genIdAndTraverse(document.documentElement, ids, func);
@@ -81,27 +81,28 @@
       storage[window.location.hostname].push(elem.id);
       browser.storage.local.set(storage);
 
-      elem.classList.add("cloaker-cloak");
+      elem.classList.add(CLOAK_CLASS);
     }
   }
 
   function leaveCloak(e) {
     currEl = null;
-    document.querySelectorAll(".show-hover").forEach((e) => {
-      e.classList.remove("show-hover");
+    document.querySelectorAll(`.${HOVER_CLASS}`).forEach((e) => {
+      e.classList.remove(HOVER_CLASS);
     });
   }
 
   function applyHover(e) {
-    document.querySelectorAll(".show-hover").forEach((e) => {
+    document.querySelectorAll(`.${HOVER_CLASS}`).forEach((e) => {
       if (e !== currEl) {
-        e.classList.remove("show-hover");
+        e.classList.remove(HOVER_CLASS);
       }
     });
     let elem = getElemAtPos(document.body, e.clientX, e.clientY);
+    console.log(elem);
     elem = getContainerElement(elem);
     if (elem) {
-      elem.classList.add("show-hover");
+      elem.classList.add(HOVER_CLASS);
       currEl = elem;
     }
   }
@@ -114,11 +115,13 @@
     if (elem.children.length > 0) {
       for (let pos in elem.children) {
         let child = elem.children[pos];
-        if (child.id !== "cloaker-overlay" && child.getBoundingClientRect) {
+        if (
+          child.id !== OVELRAY_ID &&
+          child.getBoundingClientRect &&
+          child.checkVisibility &&
+          child.checkVisibility()
+        ) {
           let rect = child.getBoundingClientRect();
-          if (child.id === "react-root") {
-            console.log(child, rect, scrollX, scrollY);
-          }
           if (isBounded(rect, x, y)) {
             candidateElem = getElemAtPos(child, x, y);
           }
@@ -139,17 +142,19 @@
   }
 
   async function digestMessage(message) {
-    if (message.command === "cloak") {
+    if (message.command === "cloak" && !cloakerActive) {
       let cloak = document.createElement("div");
-      cloak.setAttribute("id", "cloaker-overlay");
+      cloak.setAttribute("id", OVELRAY_ID);
       cloak.addEventListener("mouseout", leaveCloak);
       document.body.append(cloak);
       document.addEventListener("click", digestClick);
       document.addEventListener("mousemove", applyHover);
-    } else if (message.command === "uncloak") {
-      document.getElementById("cloaker-overlay").remove();
+      cloakerActive = true;
+    } else if (message.command === "uncloak" && cloakerActive) {
+      document.getElementById(OVELRAY_ID).remove();
       document.removeEventListener("click", digestClick);
       document.removeEventListener("mousemove", applyHover);
+      cloakerActive = false;
     } else if (message.command === "load") {
       let storage = await browser.storage.local.get();
       if (!storage || !storage[window.location.hostname]) {
@@ -162,8 +167,8 @@
       let storage = {};
       storage[window.location.hostname] = [];
       browser.storage.local.set(storage);
-      document.querySelectorAll(".cloaker-cloak").forEach((elem) => {
-        elem.classList.remove("cloaker-cloak");
+      document.querySelectorAll(`.${CLOAK_CLASS}`).forEach((elem) => {
+        elem.classList.remove(CLOAK_CLASS);
       });
     }
   }
@@ -182,7 +187,7 @@
     let ids = storage[window.location.hostname];
     if (ids) {
       idAllElements(ids, (elem) => {
-        elem.style["visibility"] = command === "cloak" ? "hidden" : "visible";
+        elem.classList[command === "cloak" ? "add" : "remove"](CLOAK_CLASS);
       });
     }
   }

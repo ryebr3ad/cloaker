@@ -21,10 +21,6 @@ function listenForCloakingStrategy() {
     });
   }
 
-  function reportError(error) {
-    console.error(`Error trying to cloak or uncloak: ${error}`);
-  }
-
   document.addEventListener("click", (e) => {
     if (e.target.id === "start-button") {
       browser.tabs.query({ active: true, currentWindow: true }).then(cloak);
