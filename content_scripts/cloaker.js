@@ -55,7 +55,16 @@
   async function generateIdHash(elem) {
     const clone = elem.cloneNode(true);
     clone.innerHTML = "";
-    let stringToHash = clone.outerHTML + getElemPositionFromParent(elem);
+
+    const parentClone = elem.parentElement.cloneNode(true);
+    parentClone.innerHTML = "";
+
+    let stringToHash =
+      clone.outerHTML +
+      (parentClone ? parentClone.outerHTML : "") +
+      getElemPositionFromParent(elem) +
+      "|" +
+      elem.parentElement.children.length;
     const textAsBuffer = new TextEncoder().encode(stringToHash);
     const hashBuffer = await window.crypto.subtle.digest(
       "SHA-256",
