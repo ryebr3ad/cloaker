@@ -112,6 +112,9 @@
     let elem = getElemAtPos(document.body, e.clientX, e.clientY);
     console.log(elem);
     elem = getContainerElement(elem);
+    while (elem && elem.classList.contains(CLOAK_CLASS)) {
+      elem = getContainerElement(elem.parentElement);
+    }
     if (elem) {
       elem.classList.add(HOVER_CLASS);
       currEl = elem;
@@ -165,6 +168,10 @@
       document.getElementById(OVELRAY_ID).remove();
       document.removeEventListener("click", digestClick);
       document.removeEventListener("mousemove", applyHover);
+      document.querySelectorAll(`.${HOVER_CLASS}`).forEach((e) => {
+        e.classList.remove(HOVER_CLASS);
+      });
+      currEl = null;
       cloakerActive = false;
     } else if (message.command === "load") {
       let storage = await browser.storage.local.get();
