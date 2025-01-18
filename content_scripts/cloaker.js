@@ -1,6 +1,5 @@
 (() => {
   let intervalId = setInterval(implementInitialLoad, 1000);
-  let initialLoadCalls = 0;
 
   if (window.hasRun) {
     return;
