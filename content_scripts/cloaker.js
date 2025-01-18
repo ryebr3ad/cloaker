@@ -1,5 +1,6 @@
 (() => {
-  setInterval(implementInitialLoad, 1000);
+  let intervalId = setInterval(implementInitialLoad, 1000);
+  let initialLoadCalls = 0;
 
   if (window.hasRun) {
     return;
@@ -7,6 +8,9 @@
 
   window.hasRun = true;
 
+  const INITIAL_LOAD_LIMIT = 5;
+
+  const CLOAKER_ATTR_NAME = "cloaker-unique-hash";
   const CLOAK_CLASS = "cloaker-cloak";
   const HOVER_CLASS = "show-hover";
   const OVELRAY_ID = "cloaker-overlay";
@@ -14,24 +18,24 @@
   let currEl = null;
   let cloakerActive = false;
 
-  function idAllElements(ids, func) {
-    genIdAndTraverse(document.documentElement, ids, func);
+  function hashAllElements(hashes, func) {
+    genHashAndTraverse(document.documentElement, hashes, func);
   }
 
-  async function genIdAndTraverse(elem, ids, func) {
+  async function genHashAndTraverse(elem, hashes, func) {
     if (isContainerElement(elem)) {
-      let elemId = elem.id;
-      if (elem.id === "") {
-        elemId = await generateIdHash(elem);
-        elem.setAttribute("id", elemId);
+      let elemHash = elem.getAttribute(CLOAKER_ATTR_NAME);
+      if (!elemHash) {
+        elemHash = await generateHash(elem);
+        elem.setAttribute(CLOAKER_ATTR_NAME, elemHash);
       }
-      if (ids.filter((id) => id === elemId).length) {
+      if (hashes.filter((hash) => hash === elemHash).length) {
         func(elem);
       }
     }
     if (elem.children.length > 0) {
       for (let child of elem.children) {
-        genIdAndTraverse(child, ids, func);
+        genHashAndTraverse(child, hashes, func);
       }
     }
   }
@@ -52,16 +56,12 @@
     );
   }
 
-  async function generateIdHash(elem) {
+  async function generateHash(elem) {
     const clone = elem.cloneNode(true);
     clone.innerHTML = "";
 
-    const parentClone = elem.parentElement.cloneNode(true);
-    parentClone.innerHTML = "";
-
     let stringToHash =
       clone.outerHTML +
-      (parentClone ? parentClone.outerHTML : "") +
       getElemPositionFromParent(elem) +
       "|" +
       elem.parentElement.children.length;
@@ -87,7 +87,9 @@
     if (currEl) {
       let elem = currEl;
       let storage = await browser.storage.local.get();
-      storage[window.location.hostname].push(elem.id);
+      storage[window.location.hostname].push(
+        elem.getAttribute(CLOAKER_ATTR_NAME)
+      );
       browser.storage.local.set(storage);
 
       elem.classList.add(CLOAK_CLASS);
@@ -190,12 +192,15 @@
       browser.storage.local.set(storage);
     }
     modifyKnownElements(storage);
+    if (++initialLoadCalls === INITIAL_LOAD_LIMIT) {
+      clearInterval(intervalId);
+    }
   }
 
   async function modifyKnownElements(storage, command = "cloak") {
-    let ids = storage[window.location.hostname];
-    if (ids) {
-      idAllElements(ids, (elem) => {
+    let hashes = storage[window.location.hostname];
+    if (hashes) {
+      hashAllElements(hashes, (elem) => {
         elem.classList[command === "cloak" ? "add" : "remove"](CLOAK_CLASS);
       });
     }
