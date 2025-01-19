@@ -1,5 +1,5 @@
 (() => {
-  let intervalId = setInterval(implementInitialLoad, 1000);
+  setInterval(implementInitialLoad, 1000);
 
   if (window.hasRun) {
     return;
@@ -17,26 +17,15 @@
   let currEl = null;
   let cloakerActive = false;
 
-  function hashAllElements(hashes, func) {
-    genHashAndTraverse(document.documentElement, hashes, func);
-  }
-
-  async function genHashAndTraverse(elem, hashes, func) {
-    if (isContainerElement(elem)) {
-      let elemHash = elem.getAttribute(CLOAKER_ATTR_NAME);
-      if (!elemHash) {
-        elemHash = await generateHash(elem);
-        elem.setAttribute(CLOAKER_ATTR_NAME, elemHash);
-      }
-      if (hashes.filter((hash) => hash === elemHash).length) {
-        func(elem);
-      }
-    }
-    if (elem.children.length > 0) {
-      for (let child of elem.children) {
-        genHashAndTraverse(child, hashes, func);
-      }
-    }
+  function hashAllElements() {
+    document
+      .querySelectorAll(
+        `div:not([${CLOAKER_ATTR_NAME}]), aside:not([${CLOAKER_ATTR_NAME}])`
+      )
+      .forEach(async (e) => {
+        elemHash = await generateHash(e);
+        e.setAttribute(CLOAKER_ATTR_NAME, elemHash);
+      });
   }
 
   function getContainerElement(elem) {
@@ -109,7 +98,6 @@
       }
     });
     let elem = getElemAtPos(document.body, e.clientX, e.clientY);
-    console.log(elem);
     elem = getContainerElement(elem);
     while (elem && elem.classList.contains(CLOAK_CLASS)) {
       elem = getContainerElement(elem.parentElement);
@@ -198,16 +186,19 @@
       browser.storage.local.set(storage);
     }
     modifyKnownElements(storage);
-    if (++initialLoadCalls === INITIAL_LOAD_LIMIT) {
-      clearInterval(intervalId);
-    }
   }
 
   async function modifyKnownElements(storage, command = "cloak") {
     let hashes = storage[window.location.hostname];
     if (hashes) {
-      hashAllElements(hashes, (elem) => {
-        elem.classList[command === "cloak" ? "add" : "remove"](CLOAK_CLASS);
+      hashAllElements();
+      hashes.forEach((hash) => {
+        const elemToCloak = document.querySelector(
+          `[${CLOAKER_ATTR_NAME}='${hash}']`
+        );
+        if (elemToCloak) {
+          elemToCloak.classList.add(CLOAK_CLASS);
+        }
       });
     }
   }
