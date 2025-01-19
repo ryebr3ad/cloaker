@@ -1,17 +1,13 @@
 function listenForCloakingStrategy() {
   function cloak(tabs) {
-    browser.tabs.insertCSS({ code: "" }).then(() => {
-      browser.tabs.sendMessage(tabs[0].id, {
-        command: "cloak",
-      });
+    browser.tabs.sendMessage(tabs[0].id, {
+      command: "cloak",
     });
   }
 
   function uncloak(tabs) {
-    browser.tabs.removeCSS({ code: "" }).then(() => {
-      browser.tabs.sendMessage(tabs[0].id, {
-        command: "uncloak",
-      });
+    browser.tabs.sendMessage(tabs[0].id, {
+      command: "uncloak",
     });
   }
 

@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Cloaker",
-  "version": "1.0.2",
+  "version": "1.1.0",
 
   "description": "Adds the ability to hide specified HTML elements on a page",
 
@@ -9,7 +9,11 @@
     "48": "icons/cloak-48.png"
   },
 
-  "permissions": ["activeTab", "storage"],
+  "permissions": ["activeTab", "storage", "menus"],
+
+  "background": {
+    "scripts": ["context-menu-items.js"]
+  },
 
   "content_scripts": [
     {
