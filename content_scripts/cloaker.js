@@ -161,15 +161,11 @@
       currEl = null;
       cloakerActive = false;
     } else if (message.command === "load") {
-      let storage = await browser.storage.local.get();
-      if (!storage || !storage[window.location.hostname]) {
-        let storage = {};
-        storage[window.location.hostname] = [];
-        browser.storage.local.set(storage);
-      }
+      let storage = await getStorage();
       modifyKnownElements(storage, message.command);
     } else if (message.command === "clear") {
-      let storage = {};
+      let storage = await getStorage();
+      console.log("in clear");
       storage[window.location.hostname] = [];
       browser.storage.local.set(storage);
       document.querySelectorAll(`.${CLOAK_CLASS}`).forEach((elem) => {
@@ -201,6 +197,16 @@
         }
       });
     }
+  }
+
+  async function getStorage() {
+    let storage = await browser.storage.local.get();
+    if (!storage || !storage[window.location.hostname]) {
+      let storage = {};
+      storage[window.location.hostname] = [];
+      browser.storage.local.set(storage);
+    }
+    return storage;
   }
 
   browser.runtime.onMessage.addListener(digestMessage);
