@@ -7,7 +7,14 @@
 
   window.hasRun = true;
 
-  const INITIAL_LOAD_LIMIT = 5;
+  const CONTAINER_ELEMENTS = [
+    "div",
+    "aside",
+    "main",
+    "nav",
+    "header",
+    "footer",
+  ];
 
   const CLOAKER_ATTR_NAME = "cloaker-unique-hash";
   const CLOAK_CLASS = "cloaker-cloak";
@@ -18,14 +25,13 @@
   let cloakerActive = false;
 
   function hashAllElements() {
-    document
-      .querySelectorAll(
-        `div:not([${CLOAKER_ATTR_NAME}]), aside:not([${CLOAKER_ATTR_NAME}])`
-      )
-      .forEach(async (e) => {
-        elemHash = await generateHash(e);
-        e.setAttribute(CLOAKER_ATTR_NAME, elemHash);
-      });
+    const query = CONTAINER_ELEMENTS.map(
+      (e) => `${e}:not([${CLOAKER_ATTR_NAME}])`
+    ).join(",");
+    document.querySelectorAll(query).forEach(async (e) => {
+      elemHash = await generateHash(e);
+      e.setAttribute(CLOAKER_ATTR_NAME, elemHash);
+    });
   }
 
   function getContainerElement(elem) {
@@ -39,8 +45,7 @@
   function isContainerElement(elem) {
     return (
       elem &&
-      (elem.tagName.toUpperCase() === "DIV" ||
-        elem.tagName.toUpperCase() === "ASIDE")
+      CONTAINER_ELEMENTS.filter((e) => elem.tagName.toLowerCase() === e).length
     );
   }
 
@@ -160,9 +165,6 @@
       });
       currEl = null;
       cloakerActive = false;
-    } else if (message.command === "load") {
-      let storage = await getStorage();
-      modifyKnownElements(storage, message.command);
     } else if (message.command === "clear") {
       let storage = await getStorage();
       console.log("in clear");
@@ -184,7 +186,7 @@
     modifyKnownElements(storage);
   }
 
-  async function modifyKnownElements(storage, command = "cloak") {
+  async function modifyKnownElements(storage) {
     let hashes = storage[window.location.hostname];
     if (hashes) {
       hashAllElements();
